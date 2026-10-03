@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hustle Hunt Progress Tracker</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#667085;--bd:#e3e6ea;--ac:#2563eb;--ok:#16a34a;--wip:#d97706;--bl:#dc2626}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1317;--card:#181d23;--tx:#e8ebef;--mu:#98a2b3;--bd:#2a313a;--ac:#5b8def;--ok:#34d399;--wip:#fbbf24;--bl:#f87171}}
+:root[data-theme="dark"]{--bg:#0f1317;--card:#181d23;--tx:#e8ebef;--mu:#98a2b3;--bd:#2a313a;--ac:#5b8def;--ok:#34d399;--wip:#fbbf24;--bl:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:820px;margin:0 auto;padding:20px 14px 60px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--mu);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bar{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;flex:1;min-width:120px}
+.bar>i{display:block;height:100%;background:var(--ac);width:0;transition:width .25s}
+.big{font-size:28px;font-weight:700}
+.pill{font-size:12px;color:var(--mu)}
+label.s{font-size:13px;color:var(--mu)}
+input,textarea,select,button{font:inherit;color:var(--tx)}
+input[type=text],input[type=date],input[type=number],textarea{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:7px 12px;cursor:pointer}
+button.g{background:transparent;color:var(--mu);border:1px solid var(--bd)}
+details{border-top:1px solid var(--bd);padding:8px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;display:flex;gap:10px;align-items:center;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary .bar{max-width:140px;height:7px}
+.item{display:flex;gap:10px;align-items:flex-start;padding:6px 0 6px 4px}
+.st{flex:none;width:26px;height:26px;border-radius:7px;border:2px solid var(--bd);background:transparent;color:#fff;font-size:14px;padding:0;line-height:1}
+.st[data-v="1"]{background:var(--wip);border-color:var(--wip)}
+.st[data-v="2"]{background:var(--ok);border-color:var(--ok)}
+.st[data-v="3"]{background:var(--bl);border-color:var(--bl)}
+.item span{flex:1}
+.item.d span{color:var(--mu);text-decoration:line-through}
+.exit{margin:6px 0 2px;font-size:13px;color:var(--mu);border-left:3px solid var(--ac);padding-left:10px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mu);margin-top:8px}
+.legend b{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:2px solid var(--bd)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd);vertical-align:top}
+th{color:var(--mu);font-weight:600;font-size:12px}
+.add{display:grid;grid-template-columns:130px 1fr 70px;gap:8px;margin-top:10px}
+.add .full{grid-column:1/-1}
+.x{background:transparent;color:var(--bl);padding:0 6px}
+#sync{font-size:12px;color:var(--mu)}
+</style>
+</head>
+<body>
+<main>
+<h1>Hustle Hunt Progress Tracker</h1>
+<p class="sub">Tap a box to cycle: not started → in progress → done → blocked.</p>
+
+<div class="card">
+  <div class="row"><div class="big" id="pct">0%</div><div class="bar"><i id="pbar"></i></div><div class="pill" id="cnt"></div></div>
+  <div class="row" style="margin-top:10px">
+    <label class="s">Start <input type="date" id="start"></label>
+    <label class="s">Target (Stage 1) <input type="date" id="target"></label>
+    <span class="pill" id="days"></span>
+  </div>
+  <div class="legend"><span><b></b>Not started</span><span><b style="background:var(--wip);border-color:var(--wip)"></b>In progress</span><span><b style="background:var(--ok);border-color:var(--ok)"></b>Done</span><span><b style="background:var(--bl);border-color:var(--bl)"></b>Blocked</span></div>
+</div>
+
+<div class="card" id="phases"></div>
+
+<div class="card">
+  <h2 style="font-size:16px;margin:0 0 8px">Weekly log</h2>
+  <div class="scroll"><table><thead><tr><th>Date</th><th>What I did</th><th>Hrs</th><th></th></tr></thead><tbody id="logrows"></tbody></table></div>
+  <div class="add">
+    <input type="date" id="ld"><input type="text" id="lw" placeholder="What I did / blockers / next step"><input type="number" id="lh" placeholder="Hrs" min="0" step="0.5">
+    <button class="full" id="ladd">Add entry</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="font-size:16px;margin:0 0 8px">Application stats</h2>
+  <div class="scroll"><table><thead><tr><th>Week</th><th>Scanned</th><th>Matches</th><th>Applied</th><th>Replies</th><th>Interviews</th></tr></thead><tbody id="stats"></tbody></table></div>
+</div>
+
+<div class="card">
+  <h2 style="font-size:16px;margin:0 0 8px">Notes: issues &amp; decisions</h2>
+  <textarea id="notes" rows="5" placeholder="Known issues, decisions made and why, ideas for later..."></textarea>
+</div>
+
+<div class="card">
+  <h2 style="font-size:16px;margin:0 0 6px">Safety rules</h2>
+  <div class="pill" style="font-size:13px;line-height:1.7">1. Keep keys and passwords in <code>.env</code>, never in code.<br>2. Don't auto-apply on LinkedIn/Indeed (ban risk).<br>3. Review cover letters for the first 2 weeks before auto-send.<br>4. Cap applications at 10-15 per day.</div>
+</div>
+
+<div class="row"><button class="g" id="reset">Reset all</button><span id="sync"></span></div>
+</main>
+
+<script>
+var PH=[
+{t:"Phase 0: Setup (Day 1)",x:"",i:["Decide target job types","Prepare CV as structured data (cv.json)","Keep CV PDF in /data/cv.pdf","Create project folder + Git repo","Set up Python environment + requirements.txt","Create .env for secrets"]},
+{t:"Phase 1: Core (Days 2-5)",x:"Run the script and get a shortlist of 5+ relevant jobs with cover letters.",i:["Scanner: source 1 (e.g. BrighterMonday)","Scanner: source 2 (e.g. MyJobMag)","Scanner: source 3 (e.g. RemoteOK)","Store jobs in database with duplicate check","Matcher: keyword scoring","Matcher: AI scoring (0-100) with Claude API","Set minimum match score (e.g. 70)","Cover letter generator (tailored per job)","Daily shortlist (email or file)"]},
+{t:"Phase 2: Email applying (Days 6-7)",x:"Send one test application to my own address.",i:["Google Cloud project + Gmail API enabled","OAuth authentication working","Extract application email from job posts","Send email with CV + cover letter","Dry-run mode (preview without sending)","Log every sent application"]},
+{t:"Phase 3: Dashboard (Days 8-10)",x:"",i:["Backend API (Flask or Node)","Jobs list with score, status, date","Filters (status, score, source)","Approve / Skip / Mark applied buttons","Statuses: New, Shortlisted, Applied, Interview, Rejected, Offer"]},
+{t:"Phase 4: Form filling (Days 11-17)",x:"",i:["Playwright setup","Auto-fill for source 1 forms","Auto-fill for source 2 forms","Stop before submit so I review and click","Save a screenshot of each filled form"]},
+{t:"Phase 5: Polish (Days 18-21)",x:"",i:["Scheduler (daily automatic run)","Error handling + retry on failed scrapes","Logging to file","Docker setup","README with setup and usage"]}
+];
+var ICON=["","…","✓","!"];
+var D={s:{},log:[],stats:{},notes:"",start:"",target:""};
+var store=null,uid=null,saveT=null;
+
+function esc(t){var d=document.createElement("div");d.textContent=t;return d.innerHTML}
+function $(i){return document.getElementById(i)}
+
+function calc(){
+  var tot=0,done=0;
+  PH.forEach(function(p,pi){var pd=0;p.i.forEach(function(_,ii){tot++;if(D.s[pi+"-"+ii]===2){done++;pd++}});p._d=pd});
+  var pc=tot?Math.round(done/tot*100):0;
+  $("pct").textContent=pc+"%";$("pbar").style.width=pc+"%";$("cnt").textContent=done+" of "+tot+" tasks done";
+  var el=$("days");
+  if(D.target){var n=Math.ceil((new Date(D.target)-new Date(new Date().toDateString()))/864e5);el.textContent=n>=0?n+" days to target":Math.abs(n)+" days past target"}else el.textContent="";
+}
+
+function render(){
+  var open={};
+  document.querySelectorAll("#phases details").forEach(function(d,i){open[i]=d.open});
+  var h="";
+  PH.forEach(function(p,pi){
+    var d=0;p.i.forEach(function(_,ii){if(D.s[pi+"-"+ii]===2)d++});
+    var w=Math.round(d/p.i.length*100);
+    var isOpen=(pi in open)?open[pi]:(pi<=1);
+    h+='<details'+(isOpen?" open":"")+'><summary><span style="flex:1">'+esc(p.t)+'</span><span class="pill">'+d+'/'+p.i.length+'</span><span class="bar"><i style="width:'+w+'%"></i></span></summary>';
+    p.i.forEach(function(t,ii){
+      var v=D.s[pi+"-"+ii]||0;
+      h+='<div class="item'+(v===2?" d":"")+'"><button class="st" data-v="'+v+'" data-k="'+pi+"-"+ii+'" aria-label="Status">'+ICON[v]+'</button><span>'+esc(t)+'</span></div>';
+    });
+    if(p.x)h+='<div class="exit"><b>Exit test:</b> '+esc(p.x)+'</div>';
+    h+='</details>';
+  });
+  $("phases").innerHTML=h;
+  var lr="";
+  D.log.forEach(function(e,i){lr+='<tr><td>'+esc(e.d)+'</td><td>'+esc(e.w)+'</td><td>'+esc(String(e.h||""))+'</td><td><button class="x" data-del="'+i+'" aria-label="Delete">×</button></td></tr>'});
+  $("logrows").innerHTML=lr||'<tr><td colspan="4" class="pill">No entries yet.</td></tr>';
+  var sr="";
+  [1,2,3].forEach(function(w){
+    sr+="<tr><td>"+w+"</td>";
+    ["a","b","c","d","e"].forEach(function(f){var v=(D.stats[w]||{})[f]||"";sr+='<td><input type="number" min="0" data-w="'+w+'" data-f="'+f+'" value="'+esc(String(v))+'" style="width:64px"></td>'});
+    sr+="</tr>";
+  });
+  $("stats").innerHTML=sr;
+  $("start").value=D.start;$("target").value=D.target;
+  if(document.activeElement!==$("notes"))$("notes").value=D.notes;
+  calc();
+}
+
+function save(){
+  clearTimeout(saveT);
+  saveT=setTimeout(function(){
+    var j=JSON.stringify(D);
+    try{localStorage.setItem("jh-tracker",j)}catch(e){}
+    if(store){store.set({json:j}).then(function(){$("sync").textContent="Saved"}).catch(function(){$("sync").textContent="Saved on this device only"})}
+    else $("sync").textContent="Saved on this device";
+  },300);
+}
+
+function load(o){
+  try{var x=typeof o==="string"?JSON.parse(o):o;if(x&&x.s)D={s:x.s||{},log:x.log||[],stats:x.stats||{},notes:x.notes||"",start:x.start||"",target:x.target||""}}catch(e){}
+}
+
+document.addEventListener("click",function(e){
+  var b=e.target.closest(".st");
+  if(b){var k=b.getAttribute("data-k");D.s[k]=((D.s[k]||0)+1)%4;render();save();return}
+  var x=e.target.closest("[data-del]");
+  if(x){D.log.splice(+x.getAttribute("data-del"),1);render();save()}
+});
+document.addEventListener("input",function(e){
+  var t=e.target;
+  if(t.id==="notes"){D.notes=t.value;save()}
+  else if(t.id==="start"||t.id==="target"){D[t.id]=t.value;calc();save()}
+  else if(t.hasAttribute("data-w")){var w=t.getAttribute("data-w");(D.stats[w]=D.stats[w]||{})[t.getAttribute("data-f")]=t.value;save()}
+});
+$("ladd").onclick=function(){
+  var w=$("lw").value.trim();if(!w)return;
+  D.log.unshift({d:$("ld").value||new Date().toISOString().slice(0,10),w:w,h:$("lh").value});
+  $("lw").value="";$("lh").value="";render();save();
+};
+$("reset").onclick=function(){
+  if(!confirm("Clear all progress?"))return;
+  D={s:{},log:[],stats:{},notes:"",start:"",target:""};render();save();
+};
+
+try{var ls=localStorage.getItem("jh-tracker");if(ls)load(ls)}catch(e){}
+$("ld").value=new Date().toISOString().slice(0,10);
+render();
+
+(async function(){
+  try{
+    if(!window.claude)return;
+    var user=await claude.use("user"),db=await claude.use("db");
+    if(!user||!db)return;
+    uid=await user.id();if(!uid)return;
+    store=db.collection("data/users/"+uid).doc("jobhunter");
+    var snap=await store.get();
+    if(snap.exists&&snap.data()&&snap.data().json){load(snap.data().json);render()}
+    $("sync").textContent="Synced to your account";
+  }catch(e){store=null}
+})();
+</script>
+</body>
+</html>
